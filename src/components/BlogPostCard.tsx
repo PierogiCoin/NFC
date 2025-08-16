@@ -1,10 +1,27 @@
+// src/components/BlogPostCard.tsx
 import React from 'react';
 import Image from 'next/image';
 
-const BlogPostCard = ({ post, onReadMore }) => {
-  const getDisplayContent = (content, maxLength = 150) => {
+export type BlogPost = {
+  id: number;
+  title: string;
+  date: string;
+  excerpt?: string;
+  imageUrl?: string;
+  fullContent: string;
+  tags?: string[];
+};
+
+type BlogPostCardProps = {
+  post: BlogPost;
+  onReadMore: () => void;
+};
+
+const BlogPostCard: React.FC<BlogPostCardProps> = ({ post, onReadMore }) => {
+  const getDisplayContent = (content: string, maxLength = 150): string => {
     if (!content) return '';
     return content.length <= maxLength ? content : content.substring(0, maxLength) + '...';
+    // alternatywnie: `${content.slice(0, maxLength)}…`
   };
 
   const displayExcerpt = post.excerpt || getDisplayContent(post.fullContent);
@@ -22,6 +39,7 @@ const BlogPostCard = ({ post, onReadMore }) => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
         </div>
+
         <div className="p-6 flex flex-col justify-between flex-grow">
           <div>
             <h3 className="text-2xl font-extrabold tracking-tight text-brand-amber mb-2 transition-colors duration-300 group-hover:text-brand-yellow">
@@ -30,7 +48,9 @@ const BlogPostCard = ({ post, onReadMore }) => {
             <p className="text-xs uppercase tracking-wide text-white/60 mb-3">{post.date}</p>
             <p className="text-white/80 text-sm leading-relaxed">{displayExcerpt}</p>
           </div>
+
           <button
+            type="button"
             onClick={onReadMore}
             className="mt-5 inline-flex items-center px-5 py-2 rounded-full bg-red-600 text-white font-semibold shadow-md hover:bg-red-500 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand"
           >
@@ -41,8 +61,9 @@ const BlogPostCard = ({ post, onReadMore }) => {
               stroke="currentColor"
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </button>
         </div>

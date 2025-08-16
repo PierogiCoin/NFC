@@ -3,6 +3,7 @@ import './globals.css';
 import { Outfit } from 'next/font/google';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Image from 'next/image';
 
 const SPONSORS = [
   { src: '/sponsors/logo1.png', alt: 'Sponsor 1', href: '#' },
@@ -62,7 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     aria-hidden
                     className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-30 blur-md transition [background:radial-gradient(24rem_12rem_at_0%_0%,rgba(34,211,238,.25),transparent)]"
                   />
-                  <img
+                  <Image
                     src={s.src}
                     alt={s.alt}
                     width={96}
@@ -193,7 +194,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                    opacity-0 group-hover/logo:opacity-100"
                         style={{ animation: 'sponsors-shine 1200ms ease-out 1' }}
                       />
-                      <img
+                      <Image
                         src={s.src}
                         alt={s.alt}
                         width={180}
@@ -233,7 +234,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                      opacity-0 group-hover/logo:opacity-100"
                           style={{ animation: 'sponsors-shine 1200ms ease-out 1' }}
                         />
-                        <img
+                        <Image
                           src={s.src}
                           alt={s.alt}
                           width={180}

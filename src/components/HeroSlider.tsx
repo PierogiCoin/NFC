@@ -19,12 +19,6 @@ import 'swiper/css/parallax';
 
 /**
  * Slajdy – obrazy wczytywane z folderu /public/images/hero
- * Upewnij się, że w /public/images/hero znajdują się pliki:
- * - mma-1.png
- * - boxing-1.png
- * - women-1.png
- * - kettlebell-1.png
- * Możesz podmieniać nazwy/ścieżki wedle uznania – ważne, by były w /public.
  */
 const slides = [
   {
@@ -61,6 +55,8 @@ const slides = [
   },
 ];
 
+type NavParams = NonNullable<Exclude<SwiperCore['params']['navigation'], boolean>>;
+
 export default function HeroSlider() {
   const [swiper, setSwiper] = useState<SwiperCore | null>(null);
   const [reduced, setReduced] = useState(false);
@@ -72,13 +68,13 @@ export default function HeroSlider() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const set = () => {
+    const onChange = () => {
       setReduced(mq.matches);
       if (mq.matches) setIsPlaying(false);
     };
-    set();
-    mq.addEventListener?.('change', set);
-    return () => mq.removeEventListener?.('change', set);
+    onChange();
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
   }, []);
 
   // Przełączanie autoplay
@@ -124,22 +120,26 @@ export default function HeroSlider() {
           navigation={{ prevEl: prevRef.current, nextEl: nextRef.current }}
           pagination={{ clickable: true, el: '.swiper-pagination-custom' }}
           onBeforeInit={(s) => {
-            // Przed inicjalizacją przypnij elementy nawigacji
-            // (ważne w React, gdy używamy refów)
-            // @ts-expect-error – Swiper typuje to szerzej
-            s.params.navigation = {
-              ...(s.params.navigation || {}),
-              prevEl: prevRef.current,
-              nextEl: nextRef.current,
-            };
+            // Poprawne przypięcie elementów nawigacji z typowaniem
+            const current = s.params.navigation;
+            if (current && typeof current !== 'boolean') {
+              current.prevEl = prevRef.current as unknown as HTMLElement;
+              current.nextEl = nextRef.current as unknown as HTMLElement;
+            } else {
+              const nav: NavParams = {
+                prevEl: prevRef.current as unknown as HTMLElement,
+                nextEl: nextRef.current as unknown as HTMLElement,
+              };
+              s.params.navigation = nav;
+            }
           }}
           onSwiper={(s) => {
             setSwiper(s);
-            // Po zmontowaniu przypnij ponownie i zainicjalizuj nawigację
-            // @ts-expect-error – dostęp do wewn. pól nawigacji
-            s.params.navigation.prevEl = prevRef.current;
-            // @ts-expect-error
-            s.params.navigation.nextEl = nextRef.current;
+            const current = s.params.navigation;
+            if (current && typeof current !== 'boolean') {
+              current.prevEl = prevRef.current as unknown as HTMLElement;
+              current.nextEl = nextRef.current as unknown as HTMLElement;
+            }
             s.navigation.init();
             s.navigation.update();
           }}
@@ -149,11 +149,7 @@ export default function HeroSlider() {
             <SwiperSlide key={index} aria-roledescription="slide">
               <div className="relative w-full h-full">
                 {/* Tło slajdu */}
-                <div
-                  className="absolute inset-0"
-                  data-swiper-parallax="-20%"
-                  aria-hidden="true"
-                >
+                <div className="absolute inset-0" data-swiper-parallax="-20%" aria-hidden="true">
                   <Image
                     src={slide.src}
                     alt={slide.alt}
@@ -164,7 +160,7 @@ export default function HeroSlider() {
                     placeholder="empty"
                     className="object-cover"
                   />
-                  {/* Cine-vignette + gradient dla czytelności, odcienie niebieskiego */}
+                  {/* Cine-vignette + gradient */}
                   <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/85 via-neutral-900/50 to-transparent" />
                   <div className="pointer-events-none absolute inset-0 [background:radial-gradient(110%_70%_at_50%_100%,rgba(12,17,29,0.85),transparent)]" />
                 </div>
@@ -189,7 +185,15 @@ export default function HeroSlider() {
                           className="relative inline-flex items-center gap-2 rounded-full bg-cyan-400 px-7 py-3 text-lg font-bold text-black transition hover:bg-cyan-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/50"
                         >
                           Dowiedz się więcej!
-                          <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                          <svg
+                            className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                          </svg>
                           <span className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-cyan-300/0 via-white/40 to-cyan-300/0 opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
                         </button>
                       </Link>
@@ -206,14 +210,18 @@ export default function HeroSlider() {
             aria-label="Poprzedni slajd"
             className="swiper-button-prev-custom absolute top-1/2 left-4 md:left-6 -translate-y-1/2 grid place-items-center h-12 w-12 md:h-14 md:w-14 rounded-full bg-black/45 text-white shadow-lg ring-1 ring-white/10 backdrop-blur transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 touch-manipulation"
           >
-            <svg className="h-6 w-6 md:h-7 md:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+            <svg className="h-6 w-6 md:h-7 md:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
           </button>
           <button
             ref={nextRef}
             aria-label="Następny slajd"
             className="swiper-button-next-custom absolute top-1/2 right-4 md:right-6 -translate-y-1/2 grid place-items-center h-12 w-12 md:h-14 md:w-14 rounded-full bg-black/45 text-white shadow-lg ring-1 ring-white/10 backdrop-blur transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 touch-manipulation"
           >
-            <svg className="h-6 w-6 md:h-7 md:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+            <svg className="h-6 w-6 md:h-7 md:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+            </svg>
           </button>
 
           {/* Pagination */}
@@ -232,15 +240,19 @@ export default function HeroSlider() {
             aria-label={isPlaying ? 'Wstrzymaj automatyczne przewijanie' : 'Wznów automatyczne przewijanie'}
           >
             {isPlaying ? (
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+              </svg>
             ) : (
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
             )}
           </button>
         </div>
       </div>
 
-      {/* Global styles do upiększenia paginacji Swipera (bez zewnętrznego CSS) */}
+      {/* Global styles do paginacji Swipera */}
       <style jsx global>{`
         .swiper-pagination-custom .swiper-pagination-bullet {
           width: 10px; height: 10px; margin: 0 5px; border-radius: 9999px;
@@ -248,7 +260,7 @@ export default function HeroSlider() {
         }
         .swiper-pagination-custom .swiper-pagination-bullet:hover { background: rgba(255,255,255,0.8); }
         .swiper-pagination-custom .swiper-pagination-bullet-active {
-          background: #22d3ee; /* cyan-400 */
+          background: #22d3ee;
           transform: scale(1.25);
           box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.15);
         }

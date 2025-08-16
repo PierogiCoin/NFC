@@ -2,7 +2,15 @@
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { Calendar, momentLocalizer, Views, ToolbarProps, View } from 'react-big-calendar';
+import {
+  Calendar,
+  momentLocalizer,
+  Views,
+  type ToolbarProps,
+  type View,
+  type EventPropGetter,
+} from 'react-big-calendar';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 import moment from 'moment';
 import 'moment/locale/pl';
 
@@ -24,14 +32,36 @@ type ApiEvent = {
   id?: string;
   title: string;
   start: string; // ISO
-  end: string;   // ISO
+  end: string; // ISO
   description?: string;
   resource?: string;
   trainer?: string;
 };
 
+type Resource =
+  | 'MMA'
+  | 'Boks'
+  | 'Sekcja Kobieca'
+  | 'Kettlebell'
+  | 'BJJ'
+  | 'KickBoxing';
+
+const RESOURCE_COLORS: Record<Resource, { bg: string; text: string; ring: string }> = {
+  MMA: { bg: '#ef4444', text: '#ffffff', ring: 'ring-red-400/40' },
+  Boks: { bg: '#f97316', text: '#111111', ring: 'ring-orange-400/40' },
+  'Sekcja Kobieca': { bg: '#ec4899', text: '#ffffff', ring: 'ring-pink-400/40' },
+  Kettlebell: { bg: '#22c55e', text: '#07130a', ring: 'ring-green-400/40' },
+  BJJ: { bg: '#06b6d4', text: '#06262b', ring: 'ring-cyan-400/40' },
+  KickBoxing: { bg: '#f59e0b', text: '#111111', ring: 'ring-amber-400/40' },
+};
+
+const isResource = (v: unknown): v is Resource =>
+  typeof v === 'string' && (Object.keys(RESOURCE_COLORS) as Resource[]).includes(v as Resource);
+
+const toResource = (v: unknown): Resource => (isResource(v) ? v : 'MMA');
+
 const weekRange = (center: Date) => {
-  const start = moment(center).startOf('week'); // Mon (locale)
+  const start = moment(center).startOf('week'); // Poniedziałek (zgodnie z locale)
   const end = moment(center).endOf('week');
   return {
     timeMin: start.toISOString(),
@@ -44,22 +74,13 @@ interface ClubEvent {
   title: string;
   start: Date;
   end: Date;
-  resource: 'MMA' | 'Boks' | 'Sekcja Kobieca' | 'Kettlebell' | 'BJJ' | 'KickBoxing' | string;
+  resource: Resource;
   description: string;
   trainer: string;
 }
 
-const RESOURCE_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
-  MMA: { bg: '#ef4444', text: '#ffffff', ring: 'ring-red-400/40' },
-  Boks: { bg: '#f97316', text: '#111111', ring: 'ring-orange-400/40' },
-  'Sekcja Kobieca': { bg: '#ec4899', text: '#ffffff', ring: 'ring-pink-400/40' },
-  Kettlebell: { bg: '#22c55e', text: '#07130a', ring: 'ring-green-400/40' },
-  BJJ: { bg: '#06b6d4', text: '#06262b', ring: 'ring-cyan-400/40' },
-  KickBoxing: { bg: '#f59e0b', text: '#111111', ring: 'ring-amber-400/40' },
-};
-
 // ---------- Pretty Toolbar ----------
-function FancyToolbar<TDate extends Date = Date>({ label, onNavigate }: ToolbarProps<TDate>) {
+const FancyToolbar: React.FC<ToolbarProps<ClubEvent, object>> = ({ label, onNavigate }) => {
   return (
     <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div className="inline-flex items-center gap-2">
@@ -70,9 +91,15 @@ function FancyToolbar<TDate extends Date = Date>({ label, onNavigate }: ToolbarP
           Dziś
         </button>
         <div className="inline-flex overflow-hidden rounded-full ring-1 ring-white/10">
-          <button onClick={() => onNavigate('PREV')} className="px-3 py-2 text-white/90 hover:bg-white/10">←</button>
-          <span className="bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10">{label}</span>
-          <button onClick={() => onNavigate('NEXT')} className="px-3 py-2 text-white/90 hover:bg-white/10">→</button>
+          <button onClick={() => onNavigate('PREV')} className="px-3 py-2 text-white/90 hover:bg-white/10">
+            ←
+          </button>
+          <span className="bg-white/5 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10">
+            {label}
+          </span>
+          <button onClick={() => onNavigate('NEXT')} className="px-3 py-2 text-white/90 hover:bg-white/10">
+            →
+          </button>
         </div>
       </div>
       <div className="inline-flex items-center gap-2">
@@ -82,7 +109,7 @@ function FancyToolbar<TDate extends Date = Date>({ label, onNavigate }: ToolbarP
       </div>
     </div>
   );
-}
+};
 
 export default function CalendarPage() {
   const [now, setNow] = useState<Date>(new Date());
@@ -95,13 +122,11 @@ export default function CalendarPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Resource filter (chips)
-  const allResources = Object.keys(RESOURCE_COLORS);
-  const [activeResources, setActiveResources] = useState<string[]>(allResources);
+  const allResources = useMemo(() => Object.keys(RESOURCE_COLORS) as Resource[], []);
+  const [activeResources, setActiveResources] = useState<Resource[]>(allResources);
 
-  const toggleResource = (r: string) => {
-    setActiveResources((prev) =>
-      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
-    );
+  const toggleResource = (r: Resource) => {
+    setActiveResources((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
   };
 
   // Limit widocznych godzin 14:00–22:00
@@ -129,7 +154,9 @@ export default function CalendarPage() {
   // Fetch events for current week
   useEffect(() => {
     const { timeMin, timeMax } = weekRange(date);
-    const url = `/api/google-calendar?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`;
+    const url = `/api/google-calendar?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(
+      timeMax
+    )}`;
     setLoading(true);
     setError(null);
     fetch(url)
@@ -143,13 +170,13 @@ export default function CalendarPage() {
           title: e.title,
           start: new Date(e.start),
           end: new Date(e.end),
-          resource: (e.resource as any) || 'MMA',
+          resource: toResource(e.resource),
           description: e.description || '',
           trainer: e.trainer || '',
         }));
         setEvents(mapped);
       })
-      .catch((err) => setError(err.message || 'Coś poszło nie tak'))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Coś poszło nie tak'))
       .finally(() => setLoading(false));
   }, [date]);
 
@@ -173,15 +200,17 @@ export default function CalendarPage() {
     });
     // refresh
     const { timeMin, timeMax } = weekRange(date);
-    const url = `/api/google-calendar?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`;
+    const url = `/api/google-calendar?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(
+      timeMax
+    )}`;
     const data: ApiEvent[] = await fetch(url).then((r) => r.json());
     setEvents(
-      data.map((e, i) => ({
+      data.map((e, i): ClubEvent => ({
         id: i + 1,
         title: e.title,
         start: new Date(e.start),
         end: new Date(e.end),
-        resource: (e.resource as any) || 'MMA',
+        resource: toResource(e.resource),
         description: e.description || '',
         trainer: e.trainer || '',
       }))
@@ -201,15 +230,17 @@ export default function CalendarPage() {
     });
     setShowModal(false);
     const { timeMin, timeMax } = weekRange(date);
-    const url = `/api/google-calendar?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`;
+    const url = `/api/google-calendar?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(
+      timeMax
+    )}`;
     const data: ApiEvent[] = await fetch(url).then((r) => r.json());
     setEvents(
-      data.map((e, i) => ({
+      data.map((e, i): ClubEvent => ({
         id: i + 1,
         title: e.title,
         start: new Date(e.start),
         end: new Date(e.end),
-        resource: (e.resource as any) || 'MMA',
+        resource: toResource(e.resource),
         description: e.description || '',
         trainer: e.trainer || '',
       }))
@@ -221,9 +252,14 @@ export default function CalendarPage() {
     setShowModal(true);
   };
 
-  // Styl wydarzeń
-  const eventPropGetter = (event: ClubEvent) => {
-    const c = RESOURCE_COLORS[event.resource] || { bg: '#dc2626', text: '#ffffff', ring: 'ring-white/10' };
+  // Styl wydarzeń — poprawny podpis typu (wymaga 1. param. typu)
+  const eventPropGetter: EventPropGetter<ClubEvent> = (event, _start, _end, _isSelected) => {
+    const c =
+      RESOURCE_COLORS[event.resource] ?? {
+        bg: '#dc2626',
+        text: '#ffffff',
+        ring: 'ring-white/10',
+      };
     return {
       style: {
         backgroundColor: c.bg,
@@ -234,17 +270,17 @@ export default function CalendarPage() {
         padding: 2,
       },
       className: `ring-1 ${c.ring}`,
-    } as any;
+    };
   };
 
   // Formatowanie godzin i etykiet
   const formats = useMemo(
     () => ({
-      timeGutterFormat: (date: Date) => moment(date).format('HH:mm'),
+      timeGutterFormat: (d: Date) => moment(d).format('HH:mm'),
       eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
         `${moment(start).format('HH:mm')}–${moment(end).format('HH:mm')}`,
-      dayFormat: (date: Date) => moment(date).format('ddd DD.MM'),
-      weekdayFormat: (date: Date) => moment(date).format('ddd'),
+      dayFormat: (d: Date) => moment(d).format('ddd DD.MM'),
+      weekdayFormat: (d: Date) => moment(d).format('ddd'),
     }),
     []
   );
@@ -253,7 +289,9 @@ export default function CalendarPage() {
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="rounded-3xl border border-white/10 bg-white/5 p-4 md:p-6 shadow-2xl backdrop-blur">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-center text-3xl sm:text-4xl font-extrabold tracking-tight text-white">Kalendarz Zajęć</h2>
+          <h2 className="text-center text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            Kalendarz Zajęć
+          </h2>
           <button
             onClick={createQuickEvent}
             className="hidden sm:inline-flex rounded-full border border-white/10 bg-yellow-400/90 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300"
@@ -289,9 +327,9 @@ export default function CalendarPage() {
 
         {/* Legenda kolorów */}
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-white/70">
-          {Object.entries(RESOURCE_COLORS).map(([key, val]) => (
+          {(Object.keys(RESOURCE_COLORS) as Resource[]).map((key) => (
             <span key={key} className="inline-flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: val.bg }} />
+              <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: RESOURCE_COLORS[key].bg }} />
               {key}
             </span>
           ))}
@@ -315,7 +353,7 @@ export default function CalendarPage() {
               onNavigate={(d) => setDate(d as Date)}
               eventPropGetter={eventPropGetter}
               onSelectEvent={handleSelectEvent}
-              now={now}
+              getNow={() => now}
               style={{ height: '100%' }}
               min={minTime}
               max={maxTime}
@@ -329,7 +367,8 @@ export default function CalendarPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-white/50">
-          Zajęcia pochodzą z Google Kalendarza (zakres tygodnia). Kliknij wydarzenie, aby zobaczyć szczegóły lub dodać je do swojego kalendarza.
+          Zajęcia pochodzą z Google Kalendarza (zakres tygodnia). Kliknij wydarzenie, aby zobaczyć szczegóły lub dodać
+          je do swojego kalendarza.
         </p>
       </div>
 
@@ -338,20 +377,29 @@ export default function CalendarPage() {
           <div className="w-full max-w-lg transform overflow-hidden rounded-2xl border border-white/10 bg-neutral-900/95 p-6 shadow-2xl backdrop-blur">
             <h3 className="text-2xl font-bold text-white">{selectedEvent.title}</h3>
             <div className="mt-3 grid grid-cols-1 gap-2 text-white/80">
-              <div><span className="font-semibold text-white">Typ:</span> {selectedEvent.resource}</div>
-              <div><span className="font-semibold text-white">Trener:</span> {selectedEvent.trainer}</div>
+              <div>
+                <span className="font-semibold text-white">Typ:</span> {selectedEvent.resource}
+              </div>
+              <div>
+                <span className="font-semibold text-white">Trener:</span> {selectedEvent.trainer}
+              </div>
               <div>
                 <span className="font-semibold text-white">Data:</span> {moment(selectedEvent.start).format('DD.MM.YYYY')}
               </div>
               <div>
-                <span className="font-semibold text-white">Godziny:</span> {moment(selectedEvent.start).format('HH:mm')} – {moment(selectedEvent.end).format('HH:mm')}
+                <span className="font-semibold text-white">Godziny:</span>{' '}
+                {moment(selectedEvent.start).format('HH:mm')} – {moment(selectedEvent.end).format('HH:mm')}
               </div>
             </div>
             <p className="mt-4 text-sm text-white/70">{selectedEvent.description}</p>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <button
                 onClick={async () => {
-                  await navigator.clipboard?.writeText(`${selectedEvent.title} — ${moment(selectedEvent.start).format('DD.MM HH:mm')}–${moment(selectedEvent.end).format('HH:mm')}`);
+                  await navigator.clipboard?.writeText(
+                    `${selectedEvent.title} — ${moment(selectedEvent.start).format('DD.MM HH:mm')}–${moment(
+                      selectedEvent.end
+                    ).format('HH:mm')}`
+                  );
                 }}
                 className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300"
               >

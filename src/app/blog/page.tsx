@@ -3,111 +3,117 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import BlogPostCard from '@/components/BlogPostCard';
 
-type BlogPost = {
+// ---- Typy ----
+export type BlogPost = {
   id: number;
   title: string;
-  date: string;
+  date: string; // np. "15 lipca 2025"
   excerpt?: string;
   imageUrl?: string;
   fullContent: string;
   tags?: string[];
 };
 
+// ---- Stałe i helpery poza komponentem (stabilne referencje) ----
+const BLOG_POSTS: BlogPost[] = [
+  {
+    id: 1,
+    title: '5 kluczowych technik w MMA dla początkujących',
+    date: '15 lipca 2025',
+    tags: ['MMA', 'Technika', 'Początkujący'],
+    excerpt:
+      'Poznaj podstawy, które pomogą Ci zacząć przygodę z MMA. Odpowiednie pozycje, chwyty i uderzenia to klucz do sukcesu.',
+    imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=MMA+Blog',
+    fullContent: 'W tym artykule skupiamy się na pięciu fundamentalnych technikach MMA...'
+  },
+  {
+    id: 2,
+    title: 'Dlaczego trening z kettlebell to must-have?',
+    date: '10 lipca 2025',
+    tags: ['Kettlebell', 'Siła', 'Mobilność'],
+    excerpt: 'Odkryj korzyści płynące z treningów funkcjonalnych z odważnikami...',
+    imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=Kettlebell+Blog',
+    fullContent: 'Trening z kettlebell angażuje całe ciało i rozwija siłę funkcjonalną...'
+  },
+  {
+    id: 3,
+    title: 'Historia boksu w Polsce – od amatora do mistrza',
+    date: '5 lipca 2025',
+    tags: ['Boks', 'Historia'],
+    excerpt: 'Prześledź drogę polskich pięściarzy na szczyt...',
+    imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=Boks+Blog',
+    fullContent: 'Boks w Polsce ma bogatą historię, pełną wybitnych postaci...'
+  },
+  {
+    id: 4,
+    title: 'Psychologia w sportach walki: Jak zbudować mentalną siłę?',
+    date: '1 lipca 2025',
+    tags: ['Mindset', 'Psychologia'],
+    excerpt: 'Oprócz fizyczności, mentalna siła jest kluczowa...',
+    imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=Psychologia+Sportu',
+    fullContent: 'W sportach walki ważna jest umiejętność radzenia sobie ze stresem...'
+  },
+  {
+    id: 5,
+    title: 'Dieta wojownika: Co jeść, aby trenować efektywnie?',
+    date: '28 czerwca 2025',
+    tags: ['Dieta', 'Regeneracja'],
+    excerpt: 'Odpowiednie odżywianie to podstawa...',
+    imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=Dieta+Sportowca',
+    fullContent: 'Dieta dostarcza energii i wspiera regenerację mięśni...'
+  }
+];
+
+const MONTHS_PL: Record<string, number> = {
+  stycznia: 0, lutego: 1, marca: 2, kwietnia: 3, maja: 4, czerwca: 5,
+  lipca: 6, sierpnia: 7, września: 8, października: 9, listopada: 10, grudnia: 11,
+};
+
+function parsePlDate(s: string): Date {
+  // "15 lipca 2025"
+  const m = s.trim().toLowerCase().match(/^(\d{1,2})\s+([a-ząćęłńóśźż]+)\s+(\d{4})$/i);
+  if (!m) return new Date(s);
+  const [, dStr, monthStr, yStr] = m;
+  return new Date(Number(yStr), MONTHS_PL[monthStr] ?? 0, Number(dStr));
+}
+
+function readMins(txt: string): number {
+  return Math.max(1, Math.round(txt.split(/\s+/).length / 200));
+}
+
+const ALL_TAGS: string[] = (() => {
+  const set = new Set<string>();
+  BLOG_POSTS.forEach(p => p.tags?.forEach(t => set.add(t)));
+  return Array.from(set).sort();
+})();
+
+const SORT_OPTIONS = [
+  { key: 'new' as const, label: 'Najnowsze' },
+  { key: 'old' as const, label: 'Najstarsze' },
+];
+
+// ---- Komponent ----
 export default function BlogPage() {
-  const blogPosts: BlogPost[] = [
-    {
-      id: 1,
-      title: '5 kluczowych technik w MMA dla początkujących',
-      date: '15 lipca 2025',
-      tags: ['MMA', 'Technika', 'Początkujący'],
-      excerpt:
-        'Poznaj podstawy, które pomogą Ci zacząć przygodę z MMA. Odpowiednie pozycje, chwyty i uderzenia to klucz do sukcesu.',
-      imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=MMA+Blog',
-      fullContent:
-        'W tym artykule skupiamy się na pięciu fundamentalnych technikach MMA...'
-    },
-    {
-      id: 2,
-      title: 'Dlaczego trening z kettlebell to must-have?',
-      date: '10 lipca 2025',
-      tags: ['Kettlebell', 'Siła', 'Mobilność'],
-      excerpt:
-        'Odkryj korzyści płynące z treningów funkcjonalnych z odważnikami...',
-      imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=Kettlebell+Blog',
-      fullContent:
-        'Trening z kettlebell angażuje całe ciało i rozwija siłę funkcjonalną...'
-    },
-    {
-      id: 3,
-      title: 'Historia boksu w Polsce – od amatora do mistrza',
-      date: '5 lipca 2025',
-      tags: ['Boks', 'Historia'],
-      excerpt:
-        'Prześledź drogę polskich pięściarzy na szczyt...',
-      imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=Boks+Blog',
-      fullContent:
-        'Boks w Polsce ma bogatą historię, pełną wybitnych postaci...'
-    },
-    {
-      id: 4,
-      title: 'Psychologia w sportach walki: Jak zbudować mentalną siłę?',
-      date: '1 lipca 2025',
-      tags: ['Mindset', 'Psychologia'],
-      excerpt:
-        'Oprócz fizyczności, mentalna siła jest kluczowa...',
-      imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=Psychologia+Sportu',
-      fullContent:
-        'W sportach walki ważna jest umiejętność radzenia sobie ze stresem...'
-    },
-    {
-      id: 5,
-      title: 'Dieta wojownika: Co jeść, aby trenować efektywnie?',
-      date: '28 czerwca 2025',
-      tags: ['Dieta', 'Regeneracja'],
-      excerpt:
-        'Odpowiednie odżywianie to podstawa...',
-      imageUrl: 'https://placehold.co/800x500/000000/FFFFFF?text=Dieta+Sportowca',
-      fullContent:
-        'Dieta dostarcza energii i wspiera regenerację mięśni...'
-    }
-  ];
-
-  const MONTHS_PL: Record<string, number> = {
-    stycznia: 0, lutego: 1, marca: 2, kwietnia: 3, maja: 4, czerwca: 5,
-    lipca: 6, sierpnia: 7, września: 8, października: 9, listopada: 10, grudnia: 11,
-  };
-  const parsePlDate = (s: string) => {
-    const m = s.trim().toLowerCase().match(/^(\d{1,2})\s+([a-ząćęłńóśźż]+)\s+(\d{4})$/i);
-    if (!m) return new Date(s);
-    const [ , dStr, monthStr, yStr ] = m;
-    return new Date(Number(yStr), MONTHS_PL[monthStr] ?? 0, Number(dStr));
-  };
-  const readMins = (txt: string) => Math.max(1, Math.round(txt.split(/\s+/).length / 200));
-
   const [query, setQuery] = useState('');
   const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [sort, setSort] = useState<'new'|'old'>('new');
+  const [sort, setSort] = useState<'new' | 'old'>('new');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 6;
 
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  const allTags = useMemo(() => {
-    const set = new Set<string>();
-    blogPosts.forEach(p => p.tags?.forEach(t => set.add(t)));
-    return Array.from(set).sort();
-  }, [blogPosts]);
-
   const processed = useMemo(() => {
-    const withMeta = blogPosts.map(p => ({
+    const withMeta = BLOG_POSTS.map(p => ({
       ...p,
       _date: parsePlDate(p.date).getTime(),
       _mins: readMins(p.fullContent),
     }));
     let arr = withMeta;
+
     if (query.trim()) {
       const q = query.toLowerCase();
       arr = arr.filter(p =>
@@ -119,9 +125,9 @@ export default function BlogPage() {
     if (activeTags.length) {
       arr = arr.filter(p => p.tags?.some(t => activeTags.includes(t)));
     }
-    arr.sort((a, b) => sort === 'new' ? b._date - a._date : a._date - b._date);
+    arr.sort((a, b) => (sort === 'new' ? b._date - a._date : a._date - b._date));
     return arr;
-  }, [blogPosts, query, activeTags, sort]);
+  }, [query, activeTags, sort]);
 
   const featured = processed[0];
   const rest = processed.slice(1);
@@ -130,26 +136,33 @@ export default function BlogPage() {
   const openPost = (post: BlogPost) => {
     setSelectedPost(post);
     setShowModal(true);
-    history.replaceState(null, '', `#post-${post.id}`);
+    if (typeof history !== 'undefined') {
+      history.replaceState(null, '', `#post-${post.id}`);
+    }
   };
   const closeModal = () => {
     setShowModal(false);
     setSelectedPost(null);
-    history.replaceState(null, '', location.pathname);
+    if (typeof location !== 'undefined' && typeof history !== 'undefined') {
+      history.replaceState(null, '', location.pathname);
+    }
   };
+
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && closeModal();
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
   }, []);
+
   useEffect(() => {
+    if (typeof location === 'undefined') return;
     const h = location.hash;
     if (h.startsWith('#post-')) {
       const id = Number(h.replace('#post-', ''));
-      const post = blogPosts.find(p => p.id === id);
+      const post = BLOG_POSTS.find(p => p.id === id);
       if (post) openPost(post);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   return (
@@ -191,13 +204,10 @@ export default function BlogPage() {
 
                 {/* Sort */}
                 <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur">
-                  {[
-                    {key:'new', label:'Najnowsze'},
-                    {key:'old', label:'Najstarsze'}
-                  ].map(opt => (
+                  {SORT_OPTIONS.map(opt => (
                     <button
                       key={opt.key}
-                      onClick={() => setSort(opt.key as any)}
+                      onClick={() => { setSort(opt.key); setPage(1); }}
                       className={`
                         px-4 py-2 text-sm font-semibold rounded-full transition
                         ${sort === opt.key ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-black' : 'text-white/80 hover:text-white'}
@@ -211,7 +221,7 @@ export default function BlogPage() {
 
               {/* Tagi */}
               <div className="flex flex-wrap gap-2">
-                {allTags.map(tag => {
+                {ALL_TAGS.map(tag => {
                   const active = activeTags.includes(tag);
                   return (
                     <button
@@ -325,12 +335,12 @@ export default function BlogPage() {
             )}
 
             <div className="mt-12 text-center">
-              <a
+              <Link
                 href="/blog"
                 className="inline-flex items-center rounded-full bg-indigo-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-cyan-300"
               >
                 Zobacz wszystkie wpisy
-              </a>
+              </Link>
             </div>
           </div>
         </div>

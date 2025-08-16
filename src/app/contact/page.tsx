@@ -1,3 +1,4 @@
+// src/app/contact/page.tsx
 'use client';
 
 import React from 'react';
@@ -37,7 +38,11 @@ export default function ContactPage() {
   React.useEffect(() => {
     const saved = localStorage.getItem('contact-draft');
     if (saved) {
-      try { setFormData(JSON.parse(saved)); } catch {}
+      try {
+        setFormData(JSON.parse(saved));
+      } catch {
+        // ignore
+      }
     }
   }, []);
   React.useEffect(() => {
@@ -78,7 +83,10 @@ export default function ContactPage() {
     if (formData.company) {
       setStatus('success');
       setNotice('Dziękujemy! (anty-spam)');
-      setTimeout(() => { setStatus(''); setNotice(''); }, 3000);
+      setTimeout(() => {
+        setStatus('');
+        setNotice('');
+      }, 3000);
       return;
     }
 
@@ -101,8 +109,8 @@ export default function ContactPage() {
       });
 
       if (!res.ok) {
-        const { message } = await res.json().catch(() => ({ message: 'Błąd serwera.' }));
-        throw new Error(message || 'Błąd serwera.');
+        const j = (await res.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(j?.message || 'Błąd serwera.');
       }
 
       setStatus('success');
@@ -110,22 +118,21 @@ export default function ContactPage() {
       setFormData(initialData);
       setErrors({});
       localStorage.removeItem('contact-draft');
-      setTimeout(() => { setStatus(''); setNotice(''); }, 5000);
-    } catch (err: any) {
+      setTimeout(() => {
+        setStatus('');
+        setNotice('');
+      }, 5000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Coś poszło nie tak. Spróbuj ponownie.';
       setStatus('error');
-      setNotice(err?.message || 'Coś poszło nie tak. Spróbuj ponownie.');
+      setNotice(message);
     }
   };
 
   const chars = formData.message.trim().length;
   const left = Math.max(0, MESSAGE_MAX - chars);
 
-  const subjectOptions = [
-    'Zapisy na trening',
-    'Pytanie o grafik',
-    'Współpraca / sponsoring',
-    'Inne',
-  ];
+  const subjectOptions = ['Zapisy na trening', 'Pytanie o grafik', 'Współpraca / sponsoring', 'Inne'];
 
   return (
     <section className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -153,16 +160,24 @@ export default function ContactPage() {
           <div className="rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-6">
             <h2 className="text-2xl font-bold text-white">Dane kontaktowe</h2>
             <ul className="mt-4 space-y-2 text-white/85">
-              <li><span className="font-semibold text-white">Adres:</span> Ul. Przykładowa 123, 00-001 Miasto</li>
+              <li>
+                <span className="font-semibold text-white">Adres:</span> Ul. Przykładowa 123, 00-001 Miasto
+              </li>
               <li>
                 <span className="font-semibold text-white">Telefon:</span>{' '}
-                <a className="text-violet-300 hover:text-violet-200" href="tel:+48123456789">+48 123 456 789</a>
+                <a className="text-violet-300 hover:text-violet-200" href="tel:+48123456789">
+                  +48 123 456 789
+                </a>
               </li>
               <li>
                 <span className="font-semibold text-white">Email:</span>{' '}
-                <a className="text-violet-300 hover:text-violet-200" href="mailto:kontakt@klubmma.pl">kontakt@klubmma.pl</a>
+                <a className="text-violet-300 hover:text-violet-200" href="mailto:kontakt@klubmma.pl">
+                  kontakt@klubmma.pl
+                </a>
               </li>
-              <li><span className="font-semibold text-white">Godziny:</span> Pon–Pt 8:00–22:00, Sob 9:00–18:00</li>
+              <li>
+                <span className="font-semibold text-white">Godziny:</span> Pon–Pt 8:00–22:00, Sob 9:00–18:00
+              </li>
             </ul>
 
             <div className="mt-6 rounded-xl overflow-hidden border border-white/10">
@@ -187,7 +202,7 @@ export default function ContactPage() {
               >
                 {/* WhatsApp icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-                  <path d="M12 2a10 10 0 00-8.94 14.56L2 22l5.6-1.48A10 10 0 1012 2zm0 2a8 8 0 016.77 12.21l-.23.34.9 3.36-3.34-.9-.34.23A8 8 0 1112 4z"/>
+                  <path d="M12 2a10 10 0 00-8.94 14.56L2 22l5.6-1.48A10 10 0 1012 2zm0 2a8 8 0 016.77 12.21l-.23.34.9 3.36-3.34-.9-.34.23A8 8 0 1112 4z" />
                 </svg>
                 WhatsApp
               </a>
@@ -199,7 +214,7 @@ export default function ContactPage() {
               >
                 {/* Messenger icon */}
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-                  <path d="M12 2C6.48 2 2 6 2 11.33c0 2.82 1.42 5.34 3.73 6.98V22l3.4-1.86c.9.25 1.86.39 2.87.39 5.52 0 10-4 10-9.33C22 6 17.52 2 12 2zm4.36 9.64l-2.3-1.22-2.37 1.22-2.27-1.22-3.49 3.49 2.3-3.49 2.37 1.22 2.27-1.22 3.49 3.49-2.3-3.49z"/>
+                  <path d="M12 2C6.48 2 2 6 2 11.33c0 2.82 1.42 5.34 3.73 6.98V22l3.4-1.86c.9.25 1.86.39 2.87.39 5.52 0 10-4 10-9.33C22 6 17.52 2 12 2zm4.36 9.64l-2.3-1.22-2.37 1.22-2.27-1.22-3.49 3.49 2.3-3.49 2.37 1.22 2.27-1.22 3.49 3.49-2.3-3.49z" />
                 </svg>
                 Messenger
               </a>
@@ -232,39 +247,55 @@ export default function ContactPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-semibold text-white">Imię i nazwisko</label>
+                  <label htmlFor="name" className="block text-sm font-semibold text-white">
+                    Imię i nazwisko
+                  </label>
                   <input
                     id="name"
                     type="text"
                     value={formData.name}
                     onChange={onChange}
-                    required aria-required="true"
+                    required
+                    aria-required="true"
                     aria-invalid={!!errors.name}
                     aria-describedby={errors.name ? 'err-name' : undefined}
                     className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-300"
                     placeholder="Jan Kowalski"
                   />
-                  {errors.name && <p id="err-name" className="mt-1 text-sm text-red-400">{errors.name}</p>}
+                  {errors.name && (
+                    <p id="err-name" className="mt-1 text-sm text-red-400">
+                      {errors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-white">Email</label>
+                  <label htmlFor="email" className="block text-sm font-semibold text-white">
+                    Email
+                  </label>
                   <input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={onChange}
-                    required aria-required="true"
+                    required
+                    aria-required="true"
                     aria-invalid={!!errors.email}
                     aria-describedby={errors.email ? 'err-email' : undefined}
                     className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-300"
                     placeholder="twoj@email.pl"
                   />
-                  {errors.email && <p id="err-email" className="mt-1 text-sm text-red-400">{errors.email}</p>}
+                  {errors.email && (
+                    <p id="err-email" className="mt-1 text-sm text-red-400">
+                      {errors.email}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-semibold text-white">Telefon (opcjonalnie)</label>
+                  <label htmlFor="phone" className="block text-sm font-semibold text-white">
+                    Telefon (opcjonalnie)
+                  </label>
                   <input
                     id="phone"
                     type="tel"
@@ -275,50 +306,72 @@ export default function ContactPage() {
                     className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-300"
                     placeholder="+48 600 000 000"
                   />
-                  {errors.phone && <p id="err-phone" className="mt-1 text-sm text-red-400">{errors.phone}</p>}
+                  {errors.phone && (
+                    <p id="err-phone" className="mt-1 text-sm text-red-400">
+                      {errors.phone}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label htmlFor="subject" className="block text-sm font-semibold text-white">Temat</label>
+                  <label htmlFor="subject" className="block text-sm font-semibold text-white">
+                    Temat
+                  </label>
                   <select
                     id="subject"
                     value={formData.subject}
                     onChange={onChange}
-                    required aria-required="true"
+                    required
+                    aria-required="true"
                     aria-invalid={!!errors.subject}
                     aria-describedby={errors.subject ? 'err-subject' : undefined}
                     className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-violet-300"
                   >
                     <option value="">— wybierz —</option>
                     {subjectOptions.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
                     ))}
                   </select>
-                  {errors.subject && <p id="err-subject" className="mt-1 text-sm text-red-400">{errors.subject}</p>}
+                  {errors.subject && (
+                    <p id="err-subject" className="mt-1 text-sm text-red-400">
+                      {errors.subject}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div>
-                <label htmlFor="message" className="block text-sm font-semibold text-white">Wiadomość</label>
+                <label htmlFor="message" className="block text-sm font-semibold text-white">
+                  Wiadomość
+                </label>
                 <textarea
                   id="message"
                   rows={6}
                   maxLength={MESSAGE_MAX}
                   value={formData.message}
                   onChange={onChange}
-                  required aria-required="true"
+                  required
+                  aria-required="true"
                   aria-invalid={!!errors.message}
                   aria-describedby={errors.message ? 'err-message' : 'msg-help'}
                   className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-violet-300 resize-y"
                   placeholder="Napisz, w czym możemy pomóc…"
                 />
                 <div className="mt-1 flex items-center justify-between text-xs">
-                  <p id="msg-help" className="text-white/50">Min. 10 znaków • Maks. {MESSAGE_MAX}</p>
+                  <p id="msg-help" className="text-white/50">
+                    Min. 10 znaków • Maks. {MESSAGE_MAX}
+                  </p>
                   <p className={classNames('tabular-nums', left < 30 && 'text-fuchsia-300', left === 0 && 'text-red-400')}>
                     {left} znaków
                   </p>
                 </div>
-                {errors.message && <p id="err-message" className="mt-1 text-sm text-red-400">{errors.message}</p>}
+                {errors.message && (
+                  <p id="err-message" className="mt-1 text-sm text-red-400">
+                    {errors.message}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-start gap-3">
@@ -354,7 +407,11 @@ export default function ContactPage() {
 
                 <button
                   type="button"
-                  onClick={() => { setFormData(initialData); setErrors({}); localStorage.removeItem('contact-draft'); }}
+                  onClick={() => {
+                    setFormData(initialData);
+                    setErrors({});
+                    localStorage.removeItem('contact-draft');
+                  }}
                   className="inline-flex items-center justify-center w-full rounded-full border border-white/15 bg-white/5 px-6 py-3 text-base font-semibold text-white/90 shadow-sm transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-500"
                 >
                   Wyczyść formularz
@@ -370,7 +427,8 @@ export default function ContactPage() {
                       ? 'bg-red-600 text-white'
                       : 'bg-black/40 text-white'
                   }`}
-                  role="alert" aria-live="polite"
+                  role="alert"
+                  aria-live="polite"
                 >
                   {notice}
                 </div>

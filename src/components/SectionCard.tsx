@@ -1,11 +1,25 @@
 // src/components/SectionCard.tsx
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image'; // Importujemy komponent Image
+import Image from 'next/image';
 
-const SectionCard = ({ title, description, imageUrl, onClick, linkHref }) => {
+export type SectionCardProps = {
+  title: string;
+  description: string;
+  imageUrl?: string;
+  linkHref: string;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+};
+
+const SectionCard: React.FC<SectionCardProps> = ({
+  title,
+  description,
+  imageUrl,
+  onClick,
+  linkHref,
+}) => {
   return (
-    <Link href={linkHref} onClick={onClick} className="block group">
+    <Link href={linkHref} onClick={onClick} className="block group" prefetch={false}>
       <div className="relative rounded-2xl p-[2px] bg-gradient-to-tr from-blue-400 via-blue-500 to-indigo-600 transition-transform duration-500 hover:scale-[1.02] hover:shadow-2xl">
         <div className="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden h-full flex flex-col shadow-lg">
           <div className="relative w-full h-52 overflow-hidden">

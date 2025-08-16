@@ -1,4 +1,8 @@
+// src/app/api/contact/route.ts
 import { NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 type Payload = {
   name: string;
@@ -7,19 +11,50 @@ type Payload = {
   subject: string;
   message: string;
   consent: boolean;
-  company?: string; // honeypot
+  // honeypot
+  company?: string;
 };
 
-// 💡 prościutki limiter (nie do produkcji na wielu instancjach)
+// Prosty limiter (lokalny, nieprodukcyjny przy wielu instancjach)
 const hits = new Map<string, { count: number; ts: number }>();
 const WINDOW_MS = 60_000; // 1 min
 const MAX_HITS = 10;
 
+// ——— Helpers ———
+function getClientIp(req: Request): string {
+  const xfwd = req.headers.get('x-forwarded-for');
+  if (xfwd && xfwd.length > 0) {
+    const first = xfwd.split(',')[0]?.trim();
+    if (first) return first;
+  }
+  const xreal = req.headers.get('x-real-ip');
+  if (xreal) return xreal;
+  const cf = req.headers.get('cf-connecting-ip');
+  if (cf) return cf;
+  const fly = req.headers.get('fly-client-ip');
+  if (fly) return fly;
+  return '0.0.0.0';
+}
+
+function isPayload(u: unknown): u is Payload {
+  if (typeof u !== 'object' || u === null) return false;
+  const o = u as Record<string, unknown>;
+  const isStr = (v: unknown) => typeof v === 'string';
+  const isBool = (v: unknown) => typeof v === 'boolean';
+  return (
+    isStr(o.name) &&
+    isStr(o.email) &&
+    isStr(o.subject) &&
+    isStr(o.message) &&
+    isBool(o.consent) &&
+    (o.phone === undefined || isStr(o.phone)) &&
+    (o.company === undefined || isStr(o.company))
+  );
+}
+
+// ——— Route ———
 export async function POST(req: Request) {
-  const ip =
-    (req.headers.get('x-forwarded-for') || '').split(',')[0]?.trim() ||
-    (req as any).ip ||
-    '0.0.0.0';
+  const ip = getClientIp(req);
 
   // rate limit
   const now = Date.now();
@@ -34,19 +69,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Zbyt wiele prób. Spróbuj za chwilę.' }, { status: 429 });
   }
 
-  let body: Payload;
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ message: 'Nieprawidłowy format danych.' }, { status: 400 });
   }
 
+  if (!isPayload(raw)) {
+    return NextResponse.json({ message: 'Nieprawidłowy kształt danych.' }, { status: 400 });
+  }
+
+  const body: Payload = raw;
+
   // honeypot
   if (body.company && body.company.trim() !== '') {
+    // udajemy sukces (bot się nie zorientuje)
     return NextResponse.json({ ok: true });
   }
 
-  // server-side validation
+  // walidacja serwerowa
   const errors: Record<string, string> = {};
   if (!body.name || !body.name.trim()) errors.name = 'Wymagane';
   if (!body.email || !/^\S+@\S+\.[\w-]{2,}$/.test(body.email)) errors.email = 'Nieprawidłowy e-mail';
@@ -60,12 +102,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Błędne dane', errors }, { status: 422 });
   }
 
-  // TODO: wyślij e-mail / zapisz do CRM.
-  // Przykład (opcjonalnie): nodemailer — tylko jeśli chcesz
-  // const transporter = nodemailer.createTransport({/* SMTP z ENV */})
-  // await transporter.sendMail({ from, to, subject: `Kontakt: ${body.subject}`, text: ... })
-
-  // Na razie log i OK
+  // TODO: integracja (SMTP / webhook / CRM)
   console.log('[CONTACT]', {
     when: new Date().toISOString(),
     ip,
