@@ -1,0 +1,32 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.*
+
+# Build outputs
+dist
+.next
+out
+build
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Env files
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+.cache
