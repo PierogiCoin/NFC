@@ -60,6 +60,62 @@ Update the `[Unreleased]` section when making changes:
 
 When releasing, move `[Unreleased]` items to a new version section.
 
+## 🔧 EditorConfig
+
+**File:** `.editorconfig`
+
+Maintains consistent coding styles across different editors and IDEs:
+- UTF-8 charset
+- LF line endings
+- 2-space indentation for code files
+- Trim trailing whitespace
+- Insert final newline
+
+Supported by most modern editors automatically or via plugins.
+
+## 💻 VSCode Configuration
+
+**Files:** `.vscode/settings.json`, `.vscode/extensions.json`
+
+### Recommended Extensions
+- ESLint - JavaScript/TypeScript linting
+- Prettier - Code formatting
+- Tailwind CSS IntelliSense - Tailwind autocomplete
+- TypeScript Next - Enhanced TypeScript support
+- EditorConfig - EditorConfig support
+
+### Settings
+- Format on save enabled
+- Auto-fix ESLint issues on save
+- Prettier as default formatter
+- TypeScript workspace version
+- Tailwind CSS class regex support
+
+## 📋 Issue & PR Templates
+
+**Files:** 
+- `.github/ISSUE_TEMPLATE/bug_report.md`
+- `.github/ISSUE_TEMPLATE/feature_request.md`
+- `.github/pull_request_template.md`
+
+Standardized templates for:
+- **Bug Reports** - Structured bug reporting with environment details
+- **Feature Requests** - Clear feature proposal format
+- **Pull Requests** - Comprehensive PR checklist and description
+
+These templates ensure consistent, high-quality contributions.
+
+## 🤖 Dependabot
+
+**File:** `.github/dependabot.yml`
+
+Automated dependency updates:
+- Weekly npm dependency updates (Mondays)
+- Weekly GitHub Actions updates (Mondays)
+- Auto-labels PRs as "dependencies"
+- Limits concurrent PRs to prevent spam
+- Assigns to repository owner for review
+
 ## 🚀 Quick Setup
 
 To enable all add-ons:
@@ -71,9 +127,12 @@ npm install --save-dev prettier
 # Format existing code
 npm run format
 
-# Verify CI workflow
-git add .github/workflows/ci.yml
-git commit -m "ci: add GitHub Actions workflow"
+# Open in VSCode to get extension recommendations
+code .
+
+# Verify CI workflow (runs automatically on push)
+git add .
+git commit -m "chore: add development tooling"
 git push
 ```
 
@@ -84,13 +143,19 @@ git push
 | CI/CD | `.github/workflows/ci.yml` | Automated testing and building |
 | Code Formatting | `.prettierrc.json`, `.prettierignore` | Consistent code style |
 | Changelog | `CHANGELOG.md` | Track project changes |
+| EditorConfig | `.editorconfig` | Cross-editor consistency |
+| VSCode Config | `.vscode/settings.json`, `.vscode/extensions.json` | Enhanced VSCode experience |
+| Issue Templates | `.github/ISSUE_TEMPLATE/*.md` | Structured issue reporting |
+| PR Template | `.github/pull_request_template.md` | Comprehensive PR guidelines |
+| Dependabot | `.github/dependabot.yml` | Automated dependency updates |
 | Format Scripts | `package.json.suggested` | Easy formatting commands |
 
-## 🔧 Optional Enhancements
+## 🔧 Optional Future Enhancements
 
-Consider adding these in the future:
+Consider adding these later:
 - **Husky** - Git hooks for pre-commit linting/formatting
 - **Commitlint** - Enforce conventional commit messages
 - **Size Limit** - Monitor bundle size
 - **Testing Framework** - Jest or Vitest for unit tests
-- **Dependabot** - Automated dependency updates
+- **Semantic Release** - Automated versioning and changelog
+- **Storybook** - Component documentation and development
