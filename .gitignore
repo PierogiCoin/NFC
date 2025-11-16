@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# build output (library)
+/dist
+
+# merge script outputs
+package.json.merged.json
+package.json.bak.*
